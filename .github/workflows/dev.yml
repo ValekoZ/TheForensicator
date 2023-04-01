@@ -72,10 +72,6 @@ jobs:
       - name: test with tox
         run: tox
 
-      - uses: codecov/codecov-action@v3
-        with:
-          fail_ci_if_error: true
-
   publish_dev_build:
     # if test failed, we should not publish
     needs: test
@@ -114,72 +110,3 @@ jobs:
           password: ${{ secrets.TEST_PYPI_API_TOKEN}}
           repository_url: https://test.pypi.org/legacy/
           skip_existing: true
-
-  notification:
-    needs: [test,publish_dev_build]
-    if: always()
-    runs-on: ubuntu-latest
-    steps:
-      - uses: martialonline/workflow-status@v2
-        id: check
-
-      - name: build success notification via email
-        if: ${{ steps.check.outputs.status == 'success' }}
-        uses: dawidd6/action-send-mail@v3
-        with:
-          server_address: ${{ secrets.BUILD_NOTIFY_MAIL_SERVER }}
-          server_port: ${{ secrets.BUILD_NOTIFY_MAIL_PORT }}
-          username: ${{ secrets.BUILD_NOTIFY_MAIL_FROM }}
-          password: ${{ secrets.BUILD_NOTIFY_MAIL_PASSWORD }}
-          from: build-bot
-          to: ${{ secrets.BUILD_NOTIFY_MAIL_RCPT }}
-          subject: ${{ needs.test.outputs.package_name }}.${{ needs.test.outputs.package_version}} build successfully
-          convert_markdown: true
-          html_body: |
-            ## Build Success
-            ${{ needs.test.outputs.package_name }}.${{ needs.test.outputs.package_version }} is built and published to test pypi
-
-            ## Change Details
-            ${{ github.event.head_commit.message }}
-
-            For more information, please check change history at https://${{ needs.test.outputs.repo_owner }}.github.io/${{ needs.test.outputs.repo_name }}/${{ needs.test.outputs.package_version }}/history
-
-            ## Package Download
-            The pacakge is available at: https://test.pypi.org/project/${{ needs.test.outputs.package_name }}/
-
-      - name: build failure notification via email
-        if: ${{ steps.check.outputs.status == 'failure' }}
-        uses: dawidd6/action-send-mail@v3
-        with:
-          server_address: ${{ secrets.BUILD_NOTIFY_MAIL_SERVER }}
-          server_port: ${{ secrets.BUILD_NOTIFY_MAIL_PORT }}
-          username: ${{ secrets.BUILD_NOTIFY_MAIL_FROM }}
-          password: ${{ secrets.BUILD_NOTIFY_MAIL_PASSWORD }}
-          from: build-bot
-          to: ${{ secrets.BUILD_NOTIFY_MAIL_RCPT }}
-          subject: ${{ needs.test.outputs.package_name }}.${{ needs.test.outputs.package_version}} build failure
-          convert_markdown: true
-          html_body: |
-            ## Change Details
-            ${{ github.event.head_commit.message }}
-
-            ## View Log
-            https://github.com/${{ needs.test.outputs.repo_owner }}/${{ needs.test.outputs.repo_name }}/actions
-
-
-      # - name: Dingtalk Robot Notify
-      #   if: always()
-      #   uses: leafney/dingtalk-action@v1.0.0
-      #   env:
-      #     DINGTALK_ACCESS_TOKEN: ${{ secrets.DINGTALK_ACCESS_TOKEN }}
-      #     DINGTALK_SECRET: ${{ secrets.DINGTALK_SECRET }}
-      #   with:
-      #     msgtype: markdown
-      #     title: CI Notification | Success
-      #     text: |
-      #       ### Build Success
-      #       ${{ needs.test.outputs.package_version_full }} is built and published to test pypi
-      #       ### Change History
-      #       Please check change history at https://${{ needs.test.outputs.repo_owner }}.github.io/${{ needs.test.outputs.repo_name }}/history
-      #       ### Package Download
-      #       Please download the pacakge at: https://test.pypi.org/project/${{ needs.test.outputs.repo_name }}/
