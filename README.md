@@ -8,7 +8,7 @@
 </a>
 
 <a href="https://github.com/ValekoZ/theforensicator/actions">
-    <img src="https://github.com/ValekoZ/theforensicator/actions/workflows/main.yml/badge.svg?branch=release" alt="CI Status">
+    <img src="https://github.com/ValekoZ/theforensicator/actions/workflows/release.yml/badge.svg" alt="CI Status">
 </a>
 
 <a href="https://ValekoZ.github.io/TheForensicator/">
