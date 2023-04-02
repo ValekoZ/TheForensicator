@@ -1,29 +1,33 @@
 """Main module."""
 
 from struct import unpack
-from fs import NTFS, MBR, GPT
+
 import pyewf
 import pyfsntfs
 
-MBR_MAGIC   = 0xD08EC033
-MBR_SIZE    = 512
+from .fs import GPT, MBR, NTFS
 
-NTFS_MAGIC  = 0x4E9052EB
+MBR_MAGIC = 0xD08EC033
+MBR_SIZE = 512
+
+NTFS_MAGIC = 0x4E9052EB
 
 SECTOR_SIZE = 512
 
 UINT32 = 4
 UINT64 = 8
 
+
 class EWFImage(object):
     def __init__(self, filenames: str) -> None:
-        self.filenames  = pyewf.glob(filenames)
-        self.handle     = None
-        self.verbosity  = True
+        self.filenames = pyewf.glob(filenames)
+        self.handle = None
+        self.verbosity = True
         self.ntfs_partitions = []
 
     """Open a handle on EWF files and read the content.
     """
+
     def __enter__(self) -> None:
         self.handle = pyewf.handle()
         self._read_handle()
@@ -31,6 +35,7 @@ class EWFImage(object):
 
     """Read `self.handle` content.
     """
+
     def _read_handle(self) -> None:
         self.handle.open(self.filenames)
 
@@ -38,7 +43,10 @@ class EWFImage(object):
         print("ACQUIRY INFOS :")
         header_values = self.handle.get_header_values()
         for key in header_values.keys():
-            print("\t%-16s : %s" % (key.replace("_", " ").capitalize(), header_values[key]))
+            print(
+                "\t%-16s : %s"
+                % (key.replace("_", " ").capitalize(), header_values[key])
+            )
 
     def _read_int(self, offset: int) -> int:
         curr_off = self.handle.get_offset()
@@ -95,6 +103,7 @@ class EWFImage(object):
 
     def __exit__(self, exception_type, exception_value, exception_traceback):
         self._close_handle()
+
 
 # "../../Forensics/disk.E01"
 with EWFImage("../../Forensics/disk.E01") as ewf:
