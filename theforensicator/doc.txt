@@ -1,0 +1,12 @@
+ACQUIRY INFOS :
+	Case number      :  
+	Description      : untitled
+	Examiner name    :  
+	Evidence number  :  
+	Notes            :  
+	Acquiry date     : Mon Oct 31 09:28:06 2022
+	System date      : Mon Oct 31 09:28:06 2022
+	Acquiry operating system : Win 201x
+	Acquiry software version : ADI4.7.1.2
+	Compression level : f
+[+] MBR partition found.
