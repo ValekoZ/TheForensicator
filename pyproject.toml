@@ -50,6 +50,7 @@ livereload = {version = "^2.6.3", optional = true}
 pyreadline = {version = "^2.1", optional = true}
 mike = { version="^1.1.2", optional=true}
 pyreadpartitions = "^1.1.1"
+setuptools = {version = "^67.6.1", optional = true}
 
 [tool.poetry.extras]
 test = [
@@ -70,7 +71,8 @@ doc = [
     "mkdocstrings",
     "mkdocs-material-extension",
     "mkdocs-autorefs",
-    "mike"
+    "mike",
+    "setuptools"
     ]
 
 [tool.poetry.scripts]
