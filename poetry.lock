@@ -1250,6 +1250,18 @@ files = [
 ]
 
 [[package]]
+name = "pyreadpartitions"
+version = "1.1.1"
+description = "Read MBR and GPT partitions directly in python."
+category = "main"
+optional = false
+python-versions = ">=3.6"
+files = [
+    {file = "pyreadpartitions-1.1.1-py2.py3-none-any.whl", hash = "sha256:3169e872e14142c014f953052df3af20616227633ce1e5ac7946d4b1b4c04740"},
+    {file = "pyreadpartitions-1.1.1.tar.gz", hash = "sha256:4ccd8b16e8e3d0d53b6933eab19cc8f95bc8020003749a7fdf238170ec11e631"},
+]
+
+[[package]]
 name = "pytest"
 version = "7.2.2"
 description = "pytest: simple powerful testing with Python"
@@ -1857,4 +1869,4 @@ test = ["black", "flake8", "flake8-docstrings", "isort", "pytest", "pytest-cov"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.7.1,<4.0"
-content-hash = "f5a2d581070015cc2431204e3c58f654cd2dada6e72e3f6bb7bc349133f82d64"
+content-hash = "9f73e5abf65b3b26957caabaf5f452740154d93f6226564fac10902b22e49899"
