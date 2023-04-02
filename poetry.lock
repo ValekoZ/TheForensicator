@@ -843,14 +843,13 @@ test = ["coverage", "flake8 (>=3.0)", "shtab"]
 
 [[package]]
 name = "mkdocs"
-version = "1.2.4"
+version = "1.4.2"
 description = "Project documentation with Markdown."
 category = "main"
 optional = true
 python-versions = ">=3.6"
 files = [
-    {file = "mkdocs-1.2.4-py3-none-any.whl", hash = "sha256:f108e7ab5a7ed3e30826dbf82f37638f0d90d11161644616cc4f01a1e2ab3940"},
-    {file = "mkdocs-1.2.4.tar.gz", hash = "sha256:8e7970a26183487fe2a1041940c6fd03aa0dbe5549e50c3e7194f565cb3c678a"},
+    {file = "mkdocs-1.4.2.tar.gz", hash = "sha256:8947af423a6d0facf41ea1195b8e1e8c85ad94ac95ae307fe11232e0424b11c5"},
 ]
 
 [package.dependencies]
