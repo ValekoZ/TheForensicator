@@ -1,21 +1,24 @@
 import pyreadpartitions as pypart
 
+import theforensicator
+
+
 class NTFS(object):
-    def __init__(self, ewf_image: "EWFImage", partition) -> None:
-        self.handle     = ewf_image.handle
-        self.verbosity  = ewf_image.verbosity
-        self.partition  = partition
-        self._start     = self.partition.first_lba
+    def __init__(self, ewf_image: "theforensicator.app.EWFImage", partition) -> None:
+        self.handle = ewf_image.handle
+        self.verbosity = ewf_image.verbosity
+        self.partition = partition
+        self._start = self.partition.first_lba
 
         if self.verbosity:
             print("[+] NTFS partition at sector %#x" % (self.partition.first_lba))
-    
+
     def _extract_file(self):
         pass
 
     def _analyze_mft(self):
         print("[?] Analyzing MFT")
-    
+
     def _analyze_registry(self):
         print("[?] Analyzing registries")
 

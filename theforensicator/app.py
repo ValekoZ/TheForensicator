@@ -103,9 +103,3 @@ class EWFImage(object):
 
     def __exit__(self, exception_type, exception_value, exception_traceback):
         self._close_handle()
-
-
-# "../../Forensics/disk.E01"
-with EWFImage("../../Forensics/disk.E01") as ewf:
-    ewf.read_ewf()
-    ewf.analyze_ntfs()

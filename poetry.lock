@@ -720,6 +720,22 @@ files = [
 ]
 
 [[package]]
+name = "libfsntfs-python"
+version = "20221023"
+description = "Python bindings module for libfsntfs"
+category = "main"
+optional = false
+python-versions = "*"
+files = [
+    {file = "libfsntfs-python-20221023.tar.gz", hash = "sha256:b637641f2fedb4a5651ae702f7fd1b93d9e2d89e4b76f0f4edefe638b5f6e598"},
+    {file = "libfsntfs_python-20221023-cp27-cp27m-win32.whl", hash = "sha256:60cd0a14915bb7db601f18d463d22b5f943c5bafbf52ea059578619b6fe2ff10"},
+    {file = "libfsntfs_python-20221023-cp27-cp27m-win_amd64.whl", hash = "sha256:6302edc945c8e3f584f9407ce708c698944d35b15ca40a772a308b3bc9ca739a"},
+    {file = "libfsntfs_python-20221023-cp310-cp310-macosx_12_0_x86_64.whl", hash = "sha256:cb6ccce6ccd95b48a0da3b87a9df9cc4e96cfa7d1fa2f7de0f7272f2ef03114a"},
+    {file = "libfsntfs_python-20221023-cp310-cp310-win32.whl", hash = "sha256:89e107f024e9365745e2a5c6e0f0c3635cedb5fd202c5da71dfb2d499e138cbb"},
+    {file = "libfsntfs_python-20221023-cp310-cp310-win_amd64.whl", hash = "sha256:95b6078ad6388edac0282252fd753358b392e54c34b4cb56cbff7d8d80bb2395"},
+]
+
+[[package]]
 name = "livereload"
 version = "2.6.3"
 description = "Python LiveReload is an awesome tool for web developers"
@@ -1869,4 +1885,4 @@ test = ["black", "flake8", "flake8-docstrings", "isort", "pytest", "pytest-cov"]
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.7.1,<4.0"
-content-hash = "f86d8960e8e63cb0388610bdcff32f07218bf6d0a6ec7a276c67f81e0e6b526e"
+content-hash = "c1d2a4e15a6749a8ba9ce674f9867ec9cca90ebb9be3b6eb14ab607b683b30a4"
