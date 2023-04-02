@@ -11,8 +11,8 @@
     <img src="https://github.com/ValekoZ/theforensicator/actions/workflows/main.yml/badge.svg?branch=release" alt="CI Status">
 </a>
 
-<a href="https://ValekoZ.github.io/theforensicator/">
-    <img src="https://img.shields.io/website/https/ValekoZ.github.io/theforensicator/index.html.svg?label=docs&down_message=unavailable&up_message=available" alt="Documentation Status">
+<a href="https://ValekoZ.github.io/TheForensicator/">
+    <img src="https://img.shields.io/website/https/ValekoZ.github.io/TheForensicator/index.html.svg?label=docs&down_message=unavailable&up_message=available" alt="Documentation Status">
 </a>
 
 </p>
@@ -22,7 +22,7 @@ School project for forensic investigations
 
 
 * Free software: MIT
-* Documentation: <https://ValekoZ.github.io/theforensicator/>
+* Documentation: <https://ValekoZ.github.io/TheForensicator/>
 
 
 ## Features
