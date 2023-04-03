@@ -96,7 +96,8 @@ class EWFImage(object):
         self._find_ntfs_partitions()
 
     def analyze_ntfs(self):
-        pass
+        for partition in self.ntfs_partitions:
+            partition.analyze_ntfs_header()
 
     def _close_handle(self) -> None:
         self.handle.close()
