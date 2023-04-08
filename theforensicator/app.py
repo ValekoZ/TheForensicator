@@ -3,7 +3,6 @@
 from struct import unpack
 
 import pyewf
-import pyfsntfs
 
 from .fs import GPT, MBR, NTFS
 
