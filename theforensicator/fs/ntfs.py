@@ -1,6 +1,7 @@
 import pyreadpartitions as pypart
 from struct import unpack, unpack_from
 import theforensicator
+import datetime
 
 SECTOR_SIZE = 512
 SECTOR_NB   = lambda x : x // SECTOR_SIZE
@@ -47,6 +48,25 @@ FILE_reserved14 = 14,
 FILE_reserved15 = 15,
 FILE_first_user = 16    # First user file, used as test limit for whether to allow opening a file or not.
 
+AT_UNUSED                       =   0x0
+AT_STANDARD_INFORMATION         =   0x10
+AT_ATTRIBUTE_LIST		        =   0x20
+AT_FILE_NAME			        =   0x30
+AT_OBJECT_ID			        =   0x40
+AT_SECURITY_DESCRIPTOR          =   0x50
+AT_VOLUME_NAME			        =   0x60
+AT_VOLUME_INFORMATION           =   0x70
+AT_DATA                         =   0x80
+AT_INDEX_ROOT			        =   0x90
+AT_INDEX_ALLOCATION		        =   0xa0
+AT_BITMAP                       =   0xb0
+AT_REPARSE_POINT		        =   0xc0
+AT_EA_INFORMATION		        =   0xd0
+AT_EA                           =   0xe0
+AT_PROPERTY_SET			        =   0xf0
+AT_LOGGED_UTILITY_STREAM        =   0x100
+AT_FIRST_USER_DEFINED_ATTRIBUTE =   0x1000
+AT_END                          =   0xffffffff
 
 class NTFS(object):
     def __init__(self, ewf_image: "theforensicator.app.EWFImage", partition) -> None:
@@ -67,10 +87,12 @@ class NTFS(object):
         print("[+] NTFS partition at sector %#x" % (self._start))
 
         for header_name in self.ntfs_header.keys():
-            if type(self.ntfs_header[header_name]) is bytes:
+            if type(self.ntfs_header[header_name]) is bytes or str:
                 print("\t%-18s : %s" % (header_name, self.ntfs_header[header_name]))
             else:
                 print("\t%-20s : %#x" % (header_name, self.ntfs_header[header_name]))
+        
+        print("=" * 0x40)
 
     def _read(self, offset: int, nb_bytes: int) -> bytes:
         curr_off = self.handle.get_offset()
@@ -98,32 +120,30 @@ class NTFS(object):
     """
     def read_mft_entry(self, mft_entry_idx: int) -> bytes:
         mft_entry_raw   = self._read_mft_entry(mft_entry_idx)
-        mft_entry  = MFT(mft_entry_raw)
+        mft_entry  = MFT(mft_entry_raw, self, verbose=True)
         return mft_entry
 
     """Get MFT start offset and begin analysis.
     """
     def analyze_ntfs_header(self):
         self.mft_start  = self.ntfs_header["mft_lcn"]
-        #print(hex(self.mft_start))
-        #print(self.read_mft_entry(0))
 
         # LAST UPDATE
         self._analyze_mft()
-
-        #print(self._read_cluster(self.mft_start))
 
     def _extract_file(self):
         pass
 
     def _analyze_mft(self):
         print("[?] Analyzing MFT")
-        mft_file = self.read_mft_entry(0)
-        print(mft_file.raw)
-        mft_file.parse_mft_header()
-        mft_file.parse_attr_header()
-
-        print(mft_file.attributes)
+        for mft_entry_nb in range(35879, 35885):
+            mft_file = self.read_mft_entry(mft_entry_nb)
+            print(f"Reading MFT entry {mft_entry_nb}")
+            if mft_file.raw[0:4] == b"\x00"*4:
+                continue
+            mft_file.parse_mft_header()
+            mft_file.parse_attr_header()
+            #print(mft_file.attributes)
 
         # offset of attributes from record content
         #ptr = mft_file["attrs_offset"]
@@ -139,7 +159,7 @@ class NTFS(object):
         print("[?] Analyzing Windows Security")
 
 class MFT(object):
-    def __init__(self, header: bytes) -> None:
+    def __init__(self, header: bytes, ntfs: "NTFS", verbose: bool) -> None:
         self._mft_fields    = [
             "magic", "usa_ofs", "usa_count", "lsn", "sequence_number", "link_count",
             "attrs_offset", "flags", "bytes_in_use", "bytes_allocated", "base_mft_record",
@@ -159,22 +179,239 @@ class MFT(object):
         ]
 
         self.raw    = header
+        self.ntfs   = ntfs
+        self.verbose    = verbose
         # mft header fields with their values
         self.mft_parsed = {}
 
-    def _analyze_attribute(self, attr_parsed: dict):
-        if attr_parsed['type'] == 0x10:
-            print("Stardard Information:\n++Type: %s Length: %d Resident: %s Name Len:%d Name Offset: %d" % (
-                hex(int(attr_parsed['type'])),
-                attr_parsed['length'],
-                attr_parsed['non_resident'],
-                attr_parsed['name_length'],
-                attr_parsed['name_offset'],
-            ))
-        print("ypyp")
+    """Convert windows like time format to UNIX like one.
+    """
+    def _get_datetime(self, windows_time: int):
+        seconds = windows_time / 10000000
+        epoch = seconds - 11644473600
+        dt = datetime.datetime(2000, 1, 1, 0, 0, 0).fromtimestamp(epoch)
+        return {"timestamp" : epoch, "date" : f"{dt.ctime()}"}
+    
+    """Attribute type : (0x10) STANDARD_INFORMATION.
+    """
+    def _standard_info_decode(self, attribute: bytes):
+        # not complete but at this time we don't need more
+        si_info = {}
 
+        si_info["creation_time"]            = self._get_datetime(unpack_from("<Q", attribute, offset=0x0)[0])
+        si_info["last_data_change_time"]    = self._get_datetime(unpack_from("<Q", attribute, offset=0x8)[0])
+        si_info["last_mft_change_time"]     = self._get_datetime(unpack_from("<Q", attribute, offset=0x10)[0])
+        si_info["last_access_time"]         = self._get_datetime(unpack_from("<Q", attribute, offset=0x18)[0])
+        si_info["file_attributes"]          = unpack_from("<I", attribute, offset=0x20)[0]
+
+        if self.verbose:
+            print("-> Created : %s\n-> Last data change : %s\n-> Last MFT change : %s\n-> Last access : %s\n-> Flags : %d" % (
+                si_info["creation_time"]["date"],
+                si_info["last_data_change_time"]["date"],
+                si_info["last_mft_change_time"]["date"],
+                si_info["last_access_time"]["date"],
+                si_info["file_attributes"]
+            ))
+
+        return si_info
+
+    """Attribute type : (0x20) ATTR_LIST_ENTRY.
+    """
+    def _attribute_list_decode(self, attribute: bytes) -> dict:
+        attr_list = {}
+        
+        attr_list["type"]         = unpack_from("<I", attribute, offset=0)[0]
+        attr_list["length"]       = unpack_from("<H", attribute, offset=4)[0]
+        attr_list["name_length"]  = unpack_from("<B", attribute, offset=6)[0]
+        attr_list["name_offset"]  = unpack_from("<B", attribute, offset=7)[0]
+        attr_list["lowest_vcn"]   = unpack_from("<Q", attribute, offset=8)[0]
+        attr_list["mft_reference"]= unpack_from("<Q", attribute, offset=16)[0]
+        attr_list["instance"]     = unpack_from("<H", attribute, offset=24)[0]
+        attr_list["name"]         = unpack_from(f"<{attr_list['name_length'] * 2}s", attribute, offset=26)[0]
+
+        return attr_list
+
+    """Attribute type : (0x30) FILE_NAME_ATTR
+    """
+    def _file_name_decode(self, attribute: bytes) -> dict:
+        _file_name = {}
+
+        _file_name["parent_directory"]      = unpack_from("<Q", attribute, offset=0x0)[0]
+        _file_name["creation_time"]         = self._get_datetime(unpack_from("<Q", attribute, offset=0x8)[0])
+        _file_name["last_data_change_time"] = self._get_datetime(unpack_from("<Q", attribute, offset=0x10)[0])
+        _file_name["last_mft_change_time"]  = self._get_datetime(unpack_from("<Q", attribute, offset=0x18)[0])
+        _file_name["last_access_time"]      = self._get_datetime(unpack_from("<Q", attribute, offset=0x20)[0])
+        _file_name["allocated_size"]        = unpack_from("<Q", attribute, offset=0x28)[0]
+        _file_name["data_size"]             = unpack_from("<Q", attribute, offset=0x30)[0]
+        _file_name["file_attributes"]       = unpack_from("<I", attribute, offset=0x38)[0]
+        # some are missing because not useful at this time
+        _file_name["file_name_length"]      = unpack_from("<B", attribute, offset=0x40)[0]
+        _file_name["file_name_type"]        = unpack_from("<B", attribute, offset=0x41)[0]
+        _file_name["file_name"]             = unpack_from(f"<{_file_name['file_name_length'] * 2}s", attribute, offset=0x42)[0].decode("utf-16")
+
+        if self.verbose:
+            print("Filename record")
+            print("-> Name : %s" % (_file_name["file_name"]))
+            print("-> Creation : %s" % (_file_name["creation_time"]["date"]))
+            print("-> Last data change : %s" % (_file_name["last_data_change_time"]["date"]))
+            print("-> Last MFT change : %s" % (_file_name["last_mft_change_time"]["date"]))
+            print("-> Last access : %s" % (_file_name["last_access_time"]["date"]))
+
+        return _file_name
+
+    """Attribute type : (0x40) OBJECT_ID_ATTR
+    """
+    def _object_id_decode(self, attribute: bytes) -> dict:
+        _object_id = {}
+
+        _object_id["data1"] = unpack_from("<I", attribute, offset=0x0)[0]
+        _object_id["data2"] = unpack_from("<H", attribute, offset=0x4)[0]
+        _object_id["data3"] = unpack_from("<H", attribute, offset=0x6)[0]
+        _object_id["data4"] = unpack_from("<8s", attribute, offset=0x8)[0]
+
+        guid = "%08x-%04x-%04x-%s" % (
+            _object_id["data1"],
+            _object_id["data2"],
+            _object_id["data3"],
+            _object_id["data4"].hex()
+        )
+
+        print("GUID : %s" % guid)
+
+        return _object_id
+
+    """Attribute type : (0x60) VOLUME_NAME
+    """
+    def _volume_name_decode(self, attribute: bytes):
+        _volume_name = {}
+        print("vol :", attribute)
+
+    """Attribute type : (0x80) DATA
+    """
+    def _data_runs_decode(self, dataruns: bytes):
+        current_datarun = dataruns
+        run_header      = unpack_from("<B", current_datarun, offset=0)[0]
+
+        data = []
+
+        size_lcn_nb     = (run_header & 0xf)
+        size_lcn_offset = (run_header >> 4)
+
+        lcn_length      = unpack("<Q", current_datarun[1 : 1 + size_lcn_nb].ljust(8, b'\0'))[0]
+        lcn_offset      = unpack("<Q", current_datarun[1 + size_lcn_nb : 1 + size_lcn_nb + size_lcn_offset].ljust(8, b'\0'))[0]
+
+        if lcn_length == 0x0:
+            print("ERROR SPARSE FILE !")
+            exit()
+
+        data.append({"lcn_length" : lcn_offset, "lcn_offset" : lcn_offset})
+
+        current_datarun = current_datarun[1 + size_lcn_nb + size_lcn_offset:]
+
+        # potential next datarun
+        run_header      = unpack_from("<B", current_datarun, offset=0)[0]
+
+        # if we enter in the loop, it means that the file is
+        # fragmented or sparsed (empty VCN between clusters)
+        while run_header != 0x0:
+            size_lcn_nb     = (run_header & 0xf)
+            size_lcn_offset = (run_header >> 4)
+
+            lcn_length      = unpack("<Q", current_datarun[1 : 1 + size_lcn_nb].ljust(8, b'\0'))[0]
+            lcn_offset      = unpack("<Q", current_datarun[1 + size_lcn_nb : 1 + size_lcn_nb + size_lcn_offset].ljust(8, b'\0'))[0]
+
+            # if it's a sparse file 
+            if lcn_length == 0x0:
+                print("sparse file")
+
+            print(lcn_length, lcn_offset)
+
+            data.append({"lcn_length" : lcn_offset, "lcn_offset" : lcn_offset})
+
+            current_datarun = current_datarun[1 + size_lcn_nb + size_lcn_offset:]
+
+            run_header      = unpack_from("<B", current_datarun, offset=0)[0]
+
+            #print(lcn_offset, lcn_length, dataruns)
+
+            print(self.ntfs._read_cluster(lcn_offset))
+
+    def _analyze_attribute(self, attr_parsed: dict, raw_attr: bytes):
+        if attr_parsed["non_resident"]:
+            attribute = b""
+        else:
+            attribute = raw_attr[attr_parsed['value_offset']:]
+
+        if attr_parsed["type"] == AT_STANDARD_INFORMATION:
+            if not self.verbose:
+                print("Standard Information:\n\ttype: %s\n\tlength: %d\n\tresident: %s\n\tname_len:%d\n\tname_offset: %d" % (
+                    hex(int(attr_parsed['type'])),
+                    attr_parsed['length'],
+                    attr_parsed['non_resident'],
+                    attr_parsed['name_length'],
+                    attr_parsed['name_offset'],
+                ))
+            si_info = self._standard_info_decode(raw_attr[attr_parsed['value_offset']:])
+
+        # not checked
+        if attr_parsed["type"] == AT_ATTRIBUTE_LIST:
+            attr_list   = self._attribute_list_decode(attribute)
+            print(attr_list)
+            #print(attribute[attr_list["name_offset"]:])
+            print("yoyoyoy")
+            #exit()
+
+        if attr_parsed["type"] == AT_FILE_NAME:
+            _file_name  = self._file_name_decode(attribute)
+        
+        if attr_parsed["type"] == AT_OBJECT_ID:
+            object_id   = self._object_id_decode(attribute)
+
+        if attr_parsed["type"] == AT_VOLUME_NAME:
+            volume_name = self._volume_name_decode(attribute)
+        
+        if attr_parsed["type"] == AT_DATA:
+            if attr_parsed["name"] != '':
+                print("yoyo")
+
+            """
+            If the attribute is resident, then data is stored in the attribute
+            """
+            if attr_parsed["non_resident"] == 0:
+                data = raw_attr[
+                    attr_parsed["value_offset"]
+                        :
+                    attr_parsed["value_offset"] + attr_parsed['value_length']
+                ]
+                print("DATA :", data)
+                #print(attr_parsed)
+                data_attribute = 1; #self._data_attribute_decode()
+
+            """
+            If the attribute is non-resident, then data is stored somewhere in memory,
+            we can know location based on dataruns stored at the end of the attribute.
+            """
+            if attr_parsed["non_resident"] == 1:
+                """
+                data_run structure :
+                    - header : constructed of 1 byte (ex: 0x21)
+                        -> header & 0xf = size of number of clusters
+                        -> header >> 4  = offset to starting cluster number (LCN)
+                """
+
+                # `mapping_pairs_offset` is the offset from attribute start of dataruns
+                self._data_runs_decode(raw_attr[attr_parsed["mapping_pairs_offset"]:])
+
+        #print(attr_parsed)
+
+    """This function will parse attribute header of an MFT entry.
+    """
     def parse_attr_header(self):
         attrs_offset    = self.mft_parsed["attrs_offset"]
+
+        # offset must be aligned on 8 bytes
+        if attrs_offset % 8:
+            print("Attribute misalignment")
 
         self.attributes = []
         
@@ -182,7 +419,11 @@ class MFT(object):
             attr_parsed = {}
 
             # used to know if it's a resident (b0) or non-resident (b1) attribute
-            attr_record     = self.raw[attrs_offset:]
+            attr_record = self.raw[attrs_offset:]
+            
+            if unpack_from("<I", attr_record, offset=0)[0] == 0xffffffff:
+                print("[?] Attributes end")
+                break
 
             if unpack_from(ATTR_RECORD_T, attr_record)[2]:
                 buf = unpack_from(ATTR_RECORD_NON_RESIDENT, attr_record)
@@ -193,30 +434,39 @@ class MFT(object):
                 for (field, value) in zip(self._attr_r_fields, buf):
                     attr_parsed.update({field : value})
 
-            if attr_parsed["type"] == 0xffffffff:
-                print("[?] Attributes end")
-                break
-
             # if an attribute has a name
             if attr_parsed["name_length"] > 0:
-                record_name = self.raw[
-                    attrs_offset + attr_parsed["name_offset"]:attrs_offset + attr_parsed["name_offset"] + attr_parsed["name_length"] * 2
+                record_name = attr_record[
+                    attr_parsed["name_offset"]
+                        :
+                    attr_parsed["name_offset"] + (attr_parsed["name_length"] * 2)
                 ]
                 attr_parsed["name"] = record_name.decode("utf-16").encode()
             else:
                 attr_parsed["name"] = ''
 
+            #print(attr_parsed)
+
             # analyze attribute type
-            self._analyze_attribute(attr_parsed)
+            self._analyze_attribute(attr_parsed, attr_record)
 
             self.attributes.append(attr_parsed)
+            #print(attr_parsed["length"])
             attrs_offset += attr_parsed["length"]
 
+        #exit()
+
+    """Parse MFT header
+    """
     def parse_mft_header(self):
         for (field, value) in zip(self._mft_fields, unpack_from(MFT_RECORD_T, self.raw)):
             self.mft_parsed.update({field : value})
+
+        # check if it's a valid MFT entry
         if self.mft_parsed["magic"] != 0x454c4946:
+            print(hex(self.mft_parsed["magic"]))
             print("[!] Bad MFT entry")
+            exit()
 
 class NTFSHeader(object):
     def __init__(self, header: bytes) -> None:
@@ -233,4 +483,7 @@ class NTFSHeader(object):
         self.ntfs_header = {}
 
         for (field, value) in zip(self._fields, unpack(NTFS_BOOT_SECTOR_T, self.header)):
-            self.ntfs_header.update({field : value})
+            if field == "bootstrap":
+                self.ntfs_header[field] = value.hex()
+            else:
+                self.ntfs_header.update({field : value})

@@ -4,7 +4,6 @@ import fire
 
 from .app import EWFImage
 
-
 def help():
     print("theforensicator")
     print("=" * len("theforensicator"))
