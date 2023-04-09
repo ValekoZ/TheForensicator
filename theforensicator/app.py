@@ -3,7 +3,10 @@
 from struct import unpack
 
 from .fs import GPT, MBR, NTFS
-from .pyewf import Ewf
+
+
+#import pyewf as test
+import yaml
 
 MBR_MAGIC = 0xD08EC033
 MBR_SIZE = 512
@@ -36,7 +39,15 @@ class EWFImage(object):
         """Open a handle on EWF files and read the content. Called when we enter
         a `with` block
         """
-        self.handle = Ewf(self.filename)
+
+        try:
+            import pyewf
+            self.handle = pyewf.handle()
+            self.handle.open(pyewf.glob(self.filename))
+        except:
+            from .pyewf import Ewf
+            self.handle = Ewf(self.filename)
+
         return self
 
     def _read_int(self, offset: int) -> int:
@@ -132,7 +143,7 @@ class EWFImage(object):
 
     def read_ewf(self):
         """Read the EWF file, and parse the partition tables"""
-        self.handle.display_properties()
+        #self.handle.display_properties()
 
         if not self._is_mbr_partition():
             print("[!] No MBR partition found, exiting...")
@@ -157,6 +168,7 @@ class EWFImage(object):
 
         for partition in self.ntfs_partitions:
             partition.analyze_ntfs_header(out_file, dump_file)
+            partition.dump_file(["C:\\Windows\\System32\\config\\SYSTEM"])
 
     def __exit__(self, exception_type, exception_value, exception_traceback):
         """Close and clean everything. Called when we exit a `with` block."""
