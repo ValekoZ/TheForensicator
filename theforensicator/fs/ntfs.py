@@ -252,12 +252,13 @@ class NTFS(object):
             self.dump_mft = json.loads(dmp_file.read())
             dmp_file.close()
 
-    def analyze_ntfs_header(self, out_file: str, dump_file: str):
+    def analyze_ntfs_header(self, out_file: str, dump_file: str, resolve_mft_file: str):
         """Analyze the NTFS header
 
         Args:
             out_file: Where to store the output
             dump_file: Where the output has been stored in a previous run
+            resolve_mft_file: Where the resolved MFT in JSON format will be stored
         """
         self.mft_start = self.ntfs_header["mft_lcn"]
 
@@ -277,7 +278,7 @@ class NTFS(object):
 
         print("[+] MFT loaded ...")
 
-        # self.resolve_mft(resolved_mft)
+        self.resolve_mft(resolve_mft_file)
 
         # return self.resolved_mft
 
@@ -385,9 +386,10 @@ class NTFS(object):
 
         print("[+] MFT paths resolved ...")
 
-        with open(json_outfile, "w") as dmp:
-            dmp.write(json.dumps(self.resolved_mft))
-            dmp.close()
+        if json_outfile:
+            with open(json_outfile, "w") as dmp:
+                dmp.write(json.dumps(self.resolved_mft))
+                dmp.close()
 
     def analyze_mft(self, out_file: str):
         """Analyze the MFT
@@ -792,38 +794,38 @@ class MFT(object):
         return data
 
     def _analyze_attribute(self, attr_parsed: dict, raw_attr: bytes):
-        # if attr_parsed["non_resident"]:
-        #     attribute = b""
-        # else:
-        #     attribute = raw_attr[attr_parsed["value_offset"] :]
+        if attr_parsed["non_resident"]:
+            attribute = b""
+        else:
+            attribute = raw_attr[attr_parsed["value_offset"] :]
 
-        # if attr_parsed["type"] == AT_STANDARD_INFORMATION:
-        #     si_info = self._standard_info_decode(
-        #         raw_attr[attr_parsed["value_offset"] :]
-        #     )
+        if attr_parsed["type"] == AT_STANDARD_INFORMATION:
+            si_info = self._standard_info_decode(
+                raw_attr[attr_parsed["value_offset"] :]
+            )
 
         # not checked
-        # if attr_parsed["type"] == AT_ATTRIBUTE_LIST:
-        #     if attr_parsed["non_resident"] == 0:
-        #         attr_list = self._attribute_list_decode(attribute)
-        #     else:
-        #         # TO FIX
-        #         # we can fall in this case if there's not enough place
-        #         # for data runs. (see: https://flatcap.github.io/linux-ntfs/ntfs/attributes/attribute_list.html)
-        #         # print(attr_parsed)
-        #         # print(raw_attr[attr_parsed['mapping_pairs_offset']:])
-        #         # print("Non-resident attribute list")
-        #         # exit()
-        #         pass
+        if attr_parsed["type"] == AT_ATTRIBUTE_LIST:
+            if attr_parsed["non_resident"] == 0:
+                attr_list = self._attribute_list_decode(attribute)
+            else:
+                # TO FIX
+                # we can fall in this case if there's not enough place
+                # for data runs. (see: https://flatcap.github.io/linux-ntfs/ntfs/attributes/attribute_list.html)
+                # print(attr_parsed)
+                # print(raw_attr[attr_parsed['mapping_pairs_offset']:])
+                # print("Non-resident attribute list")
+                # exit()
+                pass
 
-        # if attr_parsed["type"] == AT_FILE_NAME:
-        #     _file_name = self._file_name_decode(attribute)
+        if attr_parsed["type"] == AT_FILE_NAME:
+            _file_name = self._file_name_decode(attribute)
 
-        # if attr_parsed["type"] == AT_OBJECT_ID:
-        #     object_id = self._object_id_decode(attribute)
+        if attr_parsed["type"] == AT_OBJECT_ID:
+            object_id = self._object_id_decode(attribute)
 
-        # if attr_parsed["type"] == AT_VOLUME_NAME:
-        #     volume_name = self._volume_name_decode(attribute)
+        if attr_parsed["type"] == AT_VOLUME_NAME:
+            volume_name = self._volume_name_decode(attribute)
 
         if attr_parsed["type"] == AT_DATA:
             if attr_parsed["name"] != "":

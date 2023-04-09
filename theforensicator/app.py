@@ -18,7 +18,6 @@ SECTOR_SIZE = 512
 UINT32 = 4
 UINT64 = 8
 
-
 class EWFImage(object):
     """Object that reads the content of the EWF file and parses the content"""
 
@@ -45,7 +44,7 @@ class EWFImage(object):
             self.handle = pyewf.handle()
             self.handle.open(pyewf.glob(self.filename))
         except:
-            from .pyewf import Ewf
+            from .ewf import Ewf
             self.handle = Ewf(self.filename)
 
         return self
@@ -155,8 +154,14 @@ class EWFImage(object):
 
         self._find_ntfs_partitions()
 
-    def analyze_ntfs(self, out_dir: str, dump_dir: str):
-        """Analyze the NTFS partitions to extract the wanted files"""
+    def analyze_ntfs(self, out_dir: str, dump_dir: str, resolve_mft_file: str):
+        """Analyze the NTFS partitions to extract the wanted files
+
+        Args:
+            out_dir: Directory where non-resolved MFT will be stored
+            dump_dir: Directory where non-resolved MFT is stored
+            resolve_mft_file: Output file of resolved MFT in JSON format
+        """
         out_file = ""
         dump_file = ""
 
@@ -167,7 +172,7 @@ class EWFImage(object):
             dump_file = f"{dump_dir}/mft_dump.json"
 
         for partition in self.ntfs_partitions:
-            partition.analyze_ntfs_header(out_file, dump_file)
+            partition.analyze_ntfs_header(out_file, dump_file, resolve_mft_file)
             partition.dump_file(["C:\\Windows\\System32\\config\\SYSTEM"])
 
     def __exit__(self, exception_type, exception_value, exception_traceback):
