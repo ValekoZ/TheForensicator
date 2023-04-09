@@ -103,7 +103,15 @@ INDEX_VIEW = 0x20000000
 
 
 class NTFS(object):
+    """NTFS class"""
+
     def __init__(self, ewf_image: "theforensicator.app.EWFImage", partition) -> None:
+        """Initializes the NTFS object
+
+        Args:
+            ewf_image: EWF object we are based on
+            partition: Partition we will parse
+        """
         self.ewf_image = ewf_image
 
         self.handle = self.ewf_image.handle
@@ -130,6 +138,7 @@ class NTFS(object):
         self.mft = {}
 
     def _pretty_print(self):
+        """Prints additionnal informations about the partition"""
         print("[+] NTFS partition at sector %#x" % (self._start))
 
         for header_name in self.ntfs_header.keys():
@@ -141,6 +150,15 @@ class NTFS(object):
         print("=" * 0x40)
 
     def _read(self, offset: int, nb_bytes: int) -> bytes:
+        """Reads data at a given offset
+
+        Args:
+            offset: Where we want to read
+            nb_bytes: Number of bytes we want to read
+
+        Returns:
+            The bytes we have read
+        """
         curr_off = self.handle.get_offset()
         self.handle.seek(self._start * SECTOR_SIZE + offset)
         buf = self.handle.read(nb_bytes)
@@ -148,43 +166,99 @@ class NTFS(object):
         return buf
 
     def _read_sector(self, sector_idx: int) -> bytes:
+        """Reads the given sector
+
+        Args:
+            sector_idx: Index of the sector we want to read
+
+        Returns:
+            The bytes we have read
+        """
         return self._read(sector_idx * SECTOR_SIZE, SECTOR_SIZE)
 
     def _read_nsectors(self, sector_idx: int, nb_sector: int) -> bytes:
+        """Reads the given sectors
+
+        Args:
+            sector_idx: Index of the first sector we want to read
+            nb_sector: Number of sectors we want to read
+
+        Returns:
+            The bytes we have read
+        """
         return self._read(sector_idx * SECTOR_SIZE, nb_sector * SECTOR_SIZE)
 
     def _read_cluster(self, cluster_idx: int) -> bytes:
+        """Reads a cluster
+
+        Args:
+            cluster_idx: Index of the cluster we want to read
+
+        Returns:
+            The bytes we have read
+        """
         return self._read(
             cluster_idx * self.cluster_block_size, self.cluster_block_size
         )
 
     def _read_cluster_nbytes(self, cluster_idx: int, nb_bytes: int) -> bytes:
+        """Reads some bytes from a cluster
+
+        Args:
+            cluster_idx: Index of the cluster we want to read
+            nb_bytes: Number of bytes to read
+
+        Returns:
+            The bytes we have read
+        """
         return self._read(cluster_idx * self.cluster_block_size, nb_bytes)
 
     def _read_mft_entry(self, mft_entry_idx: int):
+        """Reads a MFT entry
+
+        Args:
+            mft_entry_idx: Index of the mft entry we want to read
+
+        Returns:
+            The bytes we have read
+        """
         return self._read(
             (self.mft_start * self.cluster_block_size)
             + (MFT_ENTRY_SIZE * mft_entry_idx),
             MFT_ENTRY_SIZE,
         )
 
-    """Read an MFT entry.
-    """
-
     def read_mft_entry(self, mft_entry_idx: int, verbose=False) -> bytes:
+        """Reads a MFT entry
+
+        Args:
+            mft_entry_idx: Index of the mft entry we want to read
+            verbose: How much logs we want
+
+        Returns:
+            The bytes we have read
+        """
         mft_entry_raw = self._read_mft_entry(mft_entry_idx)
         mft_entry = MFT(mft_entry_raw, self, verbose)
         return mft_entry
 
     def load_mft_dump(self, dump_file: str):
+        """Load a MFT dump
+
+        Args:
+            dump_file: Path of the dump
+        """
         with open(dump_file, "r") as dmp_file:
             self.dump_mft = json.loads(dmp_file.read())
             dmp_file.close()
 
-    """Get MFT start offset and begin analysis.
-    """
-
     def analyze_ntfs_header(self, out_file: str, dump_file: str):
+        """Analyze the NTFS header
+
+        Args:
+            out_file: Where to store the output
+            dump_file: Where the output has been stored in a previous run
+        """
         self.mft_start = self.ntfs_header["mft_lcn"]
 
         print("[+] Loading and analyzing MFT ...")
@@ -207,20 +281,27 @@ class NTFS(object):
 
         # return self.resolved_mft
 
-    """Get MFT entry
-    """
-
     def _get_dump_mft_entry(self, idx: int):
+        """Get a dump of the given mft entry
+
+        Args:
+            Index of the MFT entry to dump
+        """
         return (
             self.dump_mft["mft"][str(idx)]
             if self.is_mft_dump
             else self.dump_mft["mft"][idx]
         )
 
-    """Returns the type and path of an MFT entry.
-    """
-
     def _resolve_path(self, mft_entry) -> list:
+        """Resolve the path of the given mft entry
+
+        Args:
+            mft_entry: MFT entry to resolve
+
+        Returns:
+            The list of the possible paths of the MFT entry
+        """
         paths = []
 
         # if it's a directory
@@ -262,10 +343,12 @@ class NTFS(object):
 
         return paths
 
-    """Resolve MFT paths to re-organize path of files and directories.
-    """
-
     def resolve_mft(self, json_outfile: str):
+        """Resolve the MFT paths and save it to outfile
+
+        Args:
+            json_outfile: Where to save the output
+        """
         self.resolved_mft = {}
 
         print("[+] Resolving paths from MFT ...")
@@ -307,6 +390,11 @@ class NTFS(object):
             dmp.close()
 
     def analyze_mft(self, out_file: str):
+        """Analyze the MFT
+
+        Args:
+            out_file: Where to store the output
+        """
         print("[?] Analyzing MFT")
 
         mft_entry_nb = -1
@@ -351,6 +439,14 @@ class NTFS(object):
         return buf[: lcn_dict["init_size"]]
 
     def dump_file(self, filenames: str) -> bytes:
+        """Dump a file using its filename
+
+        Args:
+            filenames: Filename of the file to dump
+
+        Returns:
+            The file content
+        """
         for key in self.resolved_mft:
             obj_type = self.resolved_mft[key]["type"]
 
@@ -373,7 +469,16 @@ class NTFS(object):
 
 
 class MFT(object):
+    """MFT class"""
+
     def __init__(self, header: bytes, ntfs: "NTFS", verbose: bool) -> None:
+        """Initialize the MFT class
+
+        Args:
+            header: Header of the MFT
+            ntfs: NTFS
+            verbose: verbosity
+        """
         self._mft_fields = [
             "magic",
             "usa_ofs",
@@ -434,10 +539,12 @@ class MFT(object):
         self.is_valid_entry = True
         self.record = {"is_directory": False, "files": []}
 
-    """Convert windows like time format to UNIX like one.
-    """
-
     def _get_datetime(self, windows_time: int):
+        """Convert windows time to datetime
+
+        Args:
+            windows_time: Time to convert
+        """
         seconds = windows_time / 10000000
         epoch = seconds - 11644473600
         dt = datetime.datetime(2000, 1, 1, 0, 0, 0).fromtimestamp(epoch)
@@ -833,7 +940,14 @@ class MFT(object):
 
 
 class NTFSHeader(object):
+    """NTFS Header"""
+
     def __init__(self, header: bytes) -> None:
+        """Initialize the NTFSHeader class
+
+        Args:
+            header: Bytes of the header
+        """
         self._fields = [
             "jump",
             "oem_id",
