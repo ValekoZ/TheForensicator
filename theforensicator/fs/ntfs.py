@@ -202,10 +202,10 @@ class NTFS(object):
             exit()
 
         print("[+] MFT loaded ...")
-        
-        self.resolve_mft("../../resolved.json")
 
-        return self.resolved_mft
+        # self.resolve_mft(resolved_mft)
+
+        # return self.resolved_mft
 
     """Get MFT entry
     """
@@ -264,8 +264,9 @@ class NTFS(object):
 
     """Resolve MFT paths to re-organize path of files and directories.
     """
+
     def resolve_mft(self, json_outfile: str):
-        self.resolved_mft   = {}
+        self.resolved_mft = {}
 
         print("[+] Resolving paths from MFT ...")
 
@@ -277,15 +278,15 @@ class NTFS(object):
                 obj_type = path_infos[0]["type"]
                 if obj_type in ["DIRECTORY", "ORPHAN_DIRECTORY"]:
                     self.resolved_mft[int(entry_idx)] = {
-                        "type"  : obj_type,
-                        "info" : path_infos,
-                        "dates" : entry["dates"]
+                        "type": obj_type,
+                        "info": path_infos,
+                        "dates": entry["dates"],
                     }
 
                 if obj_type in ["FILE", "ORPHAN_FILE"]:
                     # case not handled in AT_DATA attribute
                     data = None
-                    
+
                     if "data" in entry:
                         data = entry["data"]
                     else:
@@ -293,10 +294,10 @@ class NTFS(object):
                         pass
 
                     self.resolved_mft[int(entry_idx)] = {
-                        "type"  : obj_type,
-                        "info"  : path_infos,
-                        "dates" : entry["dates"],
-                        "data"  : data
+                        "type": obj_type,
+                        "info": path_infos,
+                        "dates": entry["dates"],
+                        "data": data,
                     }
 
         print("[+] MFT paths resolved ...")
@@ -329,9 +330,9 @@ class NTFS(object):
             self.mft[mft_entry_nb] = mft_file.record
 
         self.dump_mft = {
-            "disk_filename" : self.ewf_image.filename,
-            "total_entries" : mft_entry_nb,
-            "mft"           : self.mft
+            "disk_filename": self.ewf_image.filename,
+            "total_entries": mft_entry_nb,
+            "mft": self.mft,
         }
 
         with open(out_file, "w") as dmp_file:
@@ -347,7 +348,7 @@ class NTFS(object):
             for idx in range(lcn["lcn_length"]):
                 buf += self._read_cluster(lcn["lcn_offset"] + idx)
 
-        return buf[:lcn_dict["init_size"]]
+        return buf[: lcn_dict["init_size"]]
 
     def dump_file(self, filenames: str) -> bytes:
         for key in self.resolved_mft:
@@ -355,7 +356,7 @@ class NTFS(object):
 
             if obj_type not in ["FILE", "ORPHAN_FILE"]:
                 continue
-            
+
             info = self.resolved_mft[key]["info"]
 
             for file in info:
@@ -663,15 +664,19 @@ class MFT(object):
             # run because we don't care of this data.
             if lcn_length == 0x0:
                 pass
-                #print("sparse file")
+                # print("sparse file")
             else:
                 # if not sparsed we add data
 
                 # if signed bit
                 if (lcn_offset >> 23) & 1 == 1:
-                    lcn_offset = int(bin(lcn_offset)[2:].rjust(32, "1"), 2) % -0x100000000
-            
-                data.append({"lcn_length" : lcn_length, "lcn_offset" : (prev_offset + lcn_offset)})
+                    lcn_offset = (
+                        int(bin(lcn_offset)[2:].rjust(32, "1"), 2) % -0x100000000
+                    )
+
+                data.append(
+                    {"lcn_length": lcn_length, "lcn_offset": (prev_offset + lcn_offset)}
+                )
 
             prev_offset = prev_offset + lcn_offset
             current_datarun = current_datarun[1 + size_lcn_nb + size_lcn_offset :]
@@ -753,9 +758,9 @@ class MFT(object):
 
                     self.record["raw_data"] = False
                     self.record["data"] = {
-                        "size"      : attr_parsed["data_size"],
-                        "init_size" : attr_parsed["initialized_size"],
-                        "raw_data"  : data
+                        "size": attr_parsed["data_size"],
+                        "init_size": attr_parsed["initialized_size"],
+                        "raw_data": data,
                     }
 
     """This function will parse attribute header of an MFT entry.
