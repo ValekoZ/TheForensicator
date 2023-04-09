@@ -2,9 +2,8 @@
 
 from struct import unpack
 
-import pyewf
-
 from .fs import GPT, MBR, NTFS
+from .pyewf import Ewf
 
 MBR_MAGIC = 0xD08EC033
 MBR_SIZE = 512
@@ -17,8 +16,8 @@ UINT32 = 4
 UINT64 = 8
 
 class EWFImage(object):
-    def __init__(self, filenames: str) -> None:
-        self.filenames          = pyewf.glob(filenames)
+    def __init__(self, filename: str) -> None:
+        self.filename = filename
         self.handle             = None
         self.verbosity          = True
         self.ntfs_partitions    = []
@@ -29,24 +28,8 @@ class EWFImage(object):
     """
 
     def __enter__(self) -> None:
-        self.handle = pyewf.handle()
-        self._read_handle()
+        self.handle = Ewf(self.filename)
         return self
-
-    """Read `self.handle` content.
-    """
-
-    def _read_handle(self) -> None:
-        self.handle.open(self.filenames)
-
-    def _print_acquiry_info(self):
-        print("ACQUIRY INFOS :")
-        header_values = self.handle.get_header_values()
-        for key in header_values.keys():
-            print(
-                "\t%-16s : %s"
-                % (key.replace("_", " ").capitalize(), header_values[key])
-            )
 
     def _read_int(self, offset: int) -> int:
         curr_off = self.handle.get_offset()
@@ -83,7 +66,7 @@ class EWFImage(object):
                 self.ntfs_partitions.append(NTFS(self, partition))
 
     def read_ewf(self) -> bytes:
-        self._print_acquiry_info()
+        self.handle.display_properties()
 
         if not self._is_mbr_partition():
             print("[!] No MBR partition found, exiting...")
@@ -110,8 +93,5 @@ class EWFImage(object):
         for partition in self.ntfs_partitions:
             partition.analyze_ntfs_header(out_file, dump_file)
 
-    def _close_handle(self) -> None:
-        self.handle.close()
-
     def __exit__(self, exception_type, exception_value, exception_traceback):
-        self._close_handle()
+        pass

@@ -4,6 +4,7 @@ import fire
 
 from .app import EWFImage
 
+
 def help():
     print("theforensicator")
     print("=" * len("theforensicator"))
@@ -11,7 +12,7 @@ def help():
 
 
 def test():
-    with EWFImage("../../Forensics/disk.E01") as ewf:
+    with EWFImage("/home/lucas/Downloads/Fofo/disk.E01") as ewf:
         ewf.read_ewf()
         ewf.analyze_ntfs(out_dir="../../", dump_dir="")
 
