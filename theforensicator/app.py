@@ -16,13 +16,14 @@ SECTOR_SIZE = 512
 UINT32 = 4
 UINT64 = 8
 
-
 class EWFImage(object):
     def __init__(self, filenames: str) -> None:
-        self.filenames = pyewf.glob(filenames)
-        self.handle = None
-        self.verbosity = True
-        self.ntfs_partitions = []
+        self.filenames          = pyewf.glob(filenames)
+        self.handle             = None
+        self.verbosity          = True
+        self.ntfs_partitions    = []
+        self.mft_dump_location  = None
+        self.out_file_location  = None
 
     """Open a handle on EWF files and read the content.
     """
@@ -94,9 +95,20 @@ class EWFImage(object):
 
         self._find_ntfs_partitions()
 
-    def analyze_ntfs(self):
+    """
+    """
+    def analyze_ntfs(self, out_dir: str, dump_dir: str):
+        out_file    = ""
+        dump_file   = ""
+
+        if out_dir:
+            out_file        = f'{out_dir}/mft_dump.json'
+        
+        if dump_dir:
+            dump_file       = f'{dump_dir}/mft_dump.json'
+
         for partition in self.ntfs_partitions:
-            partition.analyze_ntfs_header()
+            partition.analyze_ntfs_header(out_file, dump_file)
 
     def _close_handle(self) -> None:
         self.handle.close()

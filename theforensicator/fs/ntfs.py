@@ -2,6 +2,7 @@ import pyreadpartitions as pypart
 from struct import unpack, unpack_from
 import theforensicator
 import datetime
+import json
 
 SECTOR_SIZE = 512
 SECTOR_NB   = lambda x : x // SECTOR_SIZE
@@ -86,11 +87,16 @@ INDEX_VIEW      = 0x20000000
 
 class NTFS(object):
     def __init__(self, ewf_image: "theforensicator.app.EWFImage", partition) -> None:
-        self.handle = ewf_image.handle
-        self.verbosity = ewf_image.verbosity
-        self.partition = partition
-        self._start = self.partition.first_lba
-        self._end   = self.partition.last_lba
+        self.ewf_image      = ewf_image
+
+        self.handle     = self.ewf_image.handle
+        self.verbosity  = self.ewf_image.verbosity
+        self.partition  = partition
+        self._start     = self.partition.first_lba
+        self._end       = self.partition.last_lba
+
+        self.is_mft_dump    = None
+        self.dump_mft       = None
 
         self.handle.seek(self._start * SECTOR_SIZE)
         self.ntfs_header = NTFSHeader(self._read_nsectors(0, SECTOR_NB(SECTOR_SIZE))).ntfs_header
@@ -141,18 +147,139 @@ class NTFS(object):
         mft_entry  = MFT(mft_entry_raw, self, verbose)
         return mft_entry
 
+    def load_mft_dump(self, dump_file: str):
+        with open(dump_file, "r") as dmp_file:
+            self.dump_mft = json.loads(dmp_file.read())
+            dmp_file.close()
+
     """Get MFT start offset and begin analysis.
     """
-    def analyze_ntfs_header(self):
-        self.mft_start  = self.ntfs_header["mft_lcn"]
-        #print(self.ntfs_header)
-        # LAST UPDATE
-        self._analyze_mft()
+    def analyze_ntfs_header(self, out_file: str, dump_file: str):
+        self.mft_start      = self.ntfs_header["mft_lcn"]
 
-    def _extract_file(self):
-        pass
+        print("[+] Loading and analyzing MFT ...")
 
-    def _analyze_mft(self):
+        if out_file:
+            self.is_mft_dump    = False
+            self.analyze_mft(out_file)
+
+        if dump_file:
+            self.is_mft_dump    = True
+            self.load_mft_dump(dump_file)
+        
+        if not out_file and not dump_file:
+            print("[?] You didn't provide output arguments")
+            exit()
+
+        print("[+] MFT loaded ...")
+        
+        self.resolve_mft()
+
+        return self.resolved_mft
+
+    """Get MFT entry
+    """
+    def _get_dump_mft_entry(self, idx: int):
+        return self.dump_mft["mft"][str(idx)] if self.is_mft_dump else self.dump_mft["mft"][idx]
+
+    """Returns the type and path of an MFT entry.
+    """
+    def _resolve_path(self, mft_entry) -> list:
+        paths = []
+
+        # if it's a directory
+        if mft_entry["is_directory"]:
+            path        = ""
+            parent_dir  = mft_entry["parent_directory"]
+            path        += mft_entry["directory_name"]
+
+            while parent_dir != FILE_root:
+                next_entry  = self._get_dump_mft_entry(parent_dir)
+
+                if next_entry["is_directory"]:
+                    parent_dir   = next_entry["parent_directory"]
+                    path = f'{next_entry["directory_name"]}\\{path}'
+                else:
+                    return [{
+                        "type" : "ORPHAN_DIRECTORY",
+                        "directory_name" : path
+                    }]
+            
+            path = "C:\\" + path
+            
+            paths.append({
+                "type" : "DIRECTORY",
+                "directory_name" : path
+            })
+        else:
+            for file in mft_entry["files"]:
+                path        = ""
+                parent_dir  = file["parent_directory"]
+                path        += file["file_name"]
+                
+                while parent_dir != FILE_root:
+                    next_entry      = self._get_dump_mft_entry(parent_dir)
+
+                    if next_entry["is_directory"]:
+                        parent_dir  = next_entry["parent_directory"]
+                        path        = f'{next_entry["directory_name"]}\\{path}'
+                    else:
+                        return [{
+                            "type" : "ORPHAN_FILE",
+                            "file_name" : path
+                        }]
+
+                path = "C:\\" + path
+
+                paths.append({
+                    "type" : "FILE",
+                    "file_name" : path
+                })
+
+        return paths
+
+    """Resolve MFT paths to re-organize path of files and directories.
+    """
+    def resolve_mft(self):
+        self.resolved_mft   = {}
+
+        print("[+] Resolving paths from MFT ...")
+
+        for entry_idx in self.dump_mft["mft"].keys():
+            entry = self._get_dump_mft_entry(entry_idx)
+            path_infos = self._resolve_path(entry)
+
+            if path_infos:
+                obj_type = path_infos[0]["type"]
+                if obj_type in ["DIRECTORY", "ORPHAN_DIRECTORY"]:
+                    self.resolved_mft[int(entry_idx)] = {
+                        "info" : path_infos,
+                        "dates" : entry["dates"]
+                    }
+
+                if obj_type in ["FILE", "ORPHAN_FILE"]:
+                    # case not handled in AT_DATA attribute
+                    data = "UNKNOWN"
+                    
+                    if "data" in entry:
+                        data = entry["data"]
+                    else:
+                        # need to fix this issue
+                        pass
+
+                    self.resolved_mft[int(entry_idx)] = {
+                        "info"  : path_infos,
+                        "dates" : entry["dates"],
+                        "data"  : data
+                    }
+        
+        print("[+] MFT paths resolved ...")
+
+        with open("../../resolved.json", "w") as dmp:
+            dmp.write(json.dumps(self.resolved_mft))
+            dmp.close()
+
+    def analyze_mft(self, out_file: str):
         print("[?] Analyzing MFT")
 
         mft_entry_nb = -1
@@ -163,7 +290,7 @@ class NTFS(object):
             mft_file = self.read_mft_entry(mft_entry_nb, verbose=False)
             #print(f"Reading MFT entry {mft_entry_nb}")
 
-            if mft_file.raw[0:4] == b"\x00"*4:
+            if mft_file.raw[0:4] == b'\x00'*4:
                 continue
 
             mft_file.parse_mft_header()
@@ -175,10 +302,15 @@ class NTFS(object):
 
             self.mft[mft_entry_nb] = mft_file.record
 
-        for entry_idx in range(mft_entry_nb):
-            entry = self.mft[entry_idx]
-            print(entry)
-            exit()
+        self.dump_mft = {
+            "disk_filename" : self.ewf_image.filenames[0],
+            "total_entries" : mft_entry_nb,
+            "mft"           : self.mft
+        }
+
+        with open(out_file, "w") as dmp_file:
+            dmp_file.write(json.dumps(self.dump_mft))
+            dmp_file.close()
 
     def _analyze_registry(self):
         print("[?] Analyzing registries")
@@ -271,7 +403,12 @@ class MFT(object):
     def _file_name_decode(self, attribute: bytes) -> dict:
         _file_name = {}
 
-        _file_name["parent_directory"]      = unpack_from("<Q", attribute, offset=0x0)[0]
+        # for now there's no check on sequence number, maybe after
+        # it's used to know either the file is allocated, deleted or orphan
+        # https://usermanual.wiki/Pdf/WpNtOrphanFilesEnUs.1012197800.pdf
+        parent_dir = unpack_from("<Q", attribute, offset=0x0)[0]
+        _file_name["parent_directory"]      = parent_dir & 0xffffffffffff
+        _file_name["seq_num"]               = parent_dir >> 0x30
         _file_name["creation_time"]         = self._get_datetime(unpack_from("<Q", attribute, offset=0x8)[0])
         _file_name["last_data_change_time"] = self._get_datetime(unpack_from("<Q", attribute, offset=0x10)[0])
         _file_name["last_mft_change_time"]  = self._get_datetime(unpack_from("<Q", attribute, offset=0x18)[0])
@@ -284,23 +421,25 @@ class MFT(object):
         _file_name["file_name_type"]        = unpack_from("<B", attribute, offset=0x41)[0]
         _file_name["file_name"]             = unpack_from(f"<{_file_name['file_name_length'] * 2}s", attribute, offset=0x42)[0].decode("utf-16")
 
-        if _file_name["file_attributes"] == 0x10000000:
+        self.record["dates"] = {
+            "creation_time"         : _file_name["creation_time"],
+            "last_data_change_time" : _file_name["last_data_change_time"],
+            "last_mft_change_time"  : _file_name["last_mft_change_time"],
+            "last_access_time"      : _file_name["last_access_time"]
+        }
+
+        if _file_name["file_attributes"] & DIRECTORY == DIRECTORY:
             self.record["is_directory"]     = True
             self.record["directory_name"]   = _file_name["file_name"]
-            self.record["dates"]            = {
-                "creation_time"         : _file_name["creation_time"],
-                "last_data_change_time" : _file_name["last_data_change_time"],
-                "last_mft_change_time"  : _file_name["last_mft_change_time"],
-                "last_access_time"      : _file_name["last_access_time"]
-            }
-            self.record["parent_directory"] = _file_name["parent_directory"] & 0xffffffffffff
+            self.record["parent_directory"] = _file_name["parent_directory"]
+            self.record["seq_num"]          = _file_name["seq_num"]
+
         else:
             if (_file_name["file_attributes"] & ARCHIVE) == ARCHIVE:
                 _file_name["is_archive"]    = True
             
             if (_file_name["file_attributes"] & COMPRESSED) == COMPRESSED:
                 pass
-                #print(_file_name)
                 #print("COMPRESSED FILE FOUND !")
                 #exit()
 
@@ -344,7 +483,6 @@ class MFT(object):
     """
     def _volume_name_decode(self, attribute: bytes):
         _volume_name = {}
-        print("vol :", attribute)
 
     """Attribute type : (0x80) DATA
     """
@@ -447,7 +585,7 @@ class MFT(object):
                 self.record["raw_data"] = True
                 self.record["data"] = {
                     "size"      : attr_parsed['value_length'],
-                    "raw_data"  : data
+                    "raw_data"  : data.hex()
                 }
 
             """
@@ -520,6 +658,9 @@ class MFT(object):
 
             attrs_offset += attr_parsed["length"]
 
+        # maybe use this to avoid some calculus above
+        self.record["nb_record"] = self.mft_parsed["mft_record_number"]
+
     """Parse MFT header
     """
     def parse_mft_header(self):
@@ -529,9 +670,9 @@ class MFT(object):
         # check if it's a valid MFT entry
         if self.mft_parsed["magic"] != 0x454c4946:
             self.is_valid_entry = False
-            print("Bad magic :", hex(self.mft_parsed["magic"]))
-            print("Entry number : %d" % self.mft_parsed["mft_record_number"])
-            print("[!] Bad MFT entry")
+            #print("Bad magic :", hex(self.mft_parsed["magic"]))
+            #print("Entry number : %d" % self.mft_parsed["mft_record_number"])
+            #print("[!] Bad MFT entry")
             #exit()
 
 class NTFSHeader(object):

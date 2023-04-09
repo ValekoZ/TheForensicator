@@ -13,12 +13,10 @@ def help():
 def test():
     with EWFImage("../../Forensics/disk.E01") as ewf:
         ewf.read_ewf()
-        ewf.analyze_ntfs()
-
+        ewf.analyze_ntfs(out_dir="../../", dump_dir="")
 
 def main():
     fire.Fire({"help": help, "test": test})
-
 
 if __name__ == "__main__":
     main()  # pragma: no cover
