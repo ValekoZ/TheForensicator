@@ -322,7 +322,7 @@ class Ewf:
 
     def compute_offset(self, offset):  # offset in bytes, multiple of 512
         if offset > self.sector_count * self.bytes_per_sector or offset < 0:
-            print("compute_offset error")
+            raise ValueError("Offset out of bounds")
             return
 
         num_chunk = offset // self.chunk_size
