@@ -4,7 +4,14 @@ name = "theforensicator"
 version = "0.1.0"
 homepage = "https://github.com/ValekoZ/theforensicator"
 description = "School project for forensic investigations."
-authors = ["Lucas VALENTIN <lucas.valentin@ecole2600.com>"]
+authors = [
+    "Joël RABAH <joel.rabah@ecole2600.com>",
+    "Edouard GOUT <edouard.gout@ecole2600.com>",
+    "Yann MAJEROWICZ <yann.majerowicz@ecole2600.com>",
+    "Bastien WINTER DURENNEL <bastien.winter-durennel@ecole2600.com>",
+    "Olivia BOISSON <olivia.boisson@ecole2600.com>",
+    "Lucas VALENTIN <lucas.valentin@ecole2600.com>"
+]
 readme = "README.md"
 license =  "MIT"
 classifiers=[
