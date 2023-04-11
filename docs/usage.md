@@ -7,40 +7,59 @@ To use TheForensicator as a command:
 
 > **NAME**
 >
->         theforensicator - Parses a EWF file and dump interesting files found in the windows file system
+> &nbsp;&nbsp;&nbsp;&nbsp;theforensicator - Parses a EWF file and dump interesting files found in the windows file system
+>
 >
 > **SYNOPSIS**
 >
->         theforensicator *EWF_FILE* <flags>
+> &nbsp;&nbsp;&nbsp;&nbsp;theforensicator *EWF_FILE* <flags>
+>
 >
 > **DESCRIPTION**
 >
->         Parses a EWF file and dump interesting files found in the windows file system
+> &nbsp;&nbsp;&nbsp;&nbsp;Parses a EWF file and dump interesting files found in the windows file system
+>
 >
 > **POSITIONAL ARGUMENTS**
 >
->         **EWF_FILE**
->             Type: str
->             File that will be analysed (\*.E01)
+> &nbsp;&nbsp;&nbsp;&nbsp;**EWF_FILE**
+>
+> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Type: str
+>
+> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;File that will be analysed (\*.E01)
+>
 >
 > **FLAGS**
 >
->         --out\_dir=*OUT_DIR*
->             Type: Optional[str]
->             Default: None
->             Output directory where the *not resolved* MFT is written
->         --dump\_dir=*DUMP_DIR*
->             Type: Optional[str]
->             Default: None
->             Directory where the MFT has already been dumped previously
->         --resolve\_mft\_file=*RESOLVE_MFT_FILE*
->             Type: Optional[str]
->             Default: None
->             Output file of MFT files / directories in JSON format
+> &nbsp;&nbsp;&nbsp;&nbsp;--out\_dir=*OUT_DIR*
+>
+> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Type: Optional[str]
+>
+> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Default: None
+>
+> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Output directory where the *not resolved* MFT is written
+>
+> &nbsp;&nbsp;&nbsp;&nbsp;--dump\_dir=*DUMP_DIR*
+>
+> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Type: Optional[str]
+>
+> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Default: None
+>
+> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Directory where the MFT has already been dumped previously
+>
+> &nbsp;&nbsp;&nbsp;&nbsp;--resolve\_mft\_file=*RESOLVE_MFT_FILE*
+>
+> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Type: Optional[str]
+>
+> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Default: None
+>
+> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Output file of MFT files / directories in JSON format
+>
 >
 > **NOTES**
 >
->         You can also use flags syntax for POSITIONAL ARGUMENTS
+> &nbsp;&nbsp;&nbsp;&nbsp;You can also use flags syntax for POSITIONAL ARGUMENTS
+>
 
 
 ## As a module
