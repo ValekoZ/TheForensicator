@@ -2,11 +2,10 @@
 
 from struct import unpack
 
-from .fs import GPT, MBR, NTFS
-
-
-#import pyewf as test
+# import pyewf as test
 import yaml
+
+from .fs import GPT, MBR, NTFS
 
 MBR_MAGIC = 0xD08EC033
 MBR_SIZE = 512
@@ -17,6 +16,7 @@ SECTOR_SIZE = 512
 
 UINT32 = 4
 UINT64 = 8
+
 
 class EWFImage(object):
     """Object that reads the content of the EWF file and parses the content"""
@@ -41,10 +41,13 @@ class EWFImage(object):
 
         try:
             import pyewf
+
             self.handle = pyewf.handle()
             self.handle.open(pyewf.glob(self.filename))
-        except:
+        except ModuleNotFoundError:
+            print("[!]\tCould not load pyewf, using python implementation...")
             from .ewf import Ewf
+
             self.handle = Ewf(self.filename)
 
         return self
@@ -142,7 +145,7 @@ class EWFImage(object):
 
     def read_ewf(self):
         """Read the EWF file, and parse the partition tables"""
-        #self.handle.display_properties()
+        # self.handle.display_properties()
 
         if not self._is_mbr_partition():
             print("[!] No MBR partition found, exiting...")
