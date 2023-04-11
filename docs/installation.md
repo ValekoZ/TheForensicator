@@ -9,7 +9,8 @@ terminal:
 pip install theforensicator
 ```
 
-This is the preferred method to install TheForensicator, as it will always install the most recent stable release.
+This is the preferred method to install TheForensicator, as it will always
+install the most recent stable release.
 
 If you don't have [pip][] installed, this [Python installation guide][]
 can guide you through the process.
