@@ -115,7 +115,7 @@ Make sure all your changes are committed (including an entry in HISTORY.md).
 Then run:
 
 ```
-$ poetry patch # possible: major / minor / patch
+$ poetry version patch # possible: major / minor / patch
 $ git push
 $ git push --tags
 ```
