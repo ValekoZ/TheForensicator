@@ -27,11 +27,11 @@ School project for forensic investigations
 
 ## Features
 
-[X] Read a EWF file
-[X] Extract MBR from NTFS partitions
-[X] Resolve paths of files from NTFS partitions
-[X] Extract files from NTFS partitions
-[ ] Extract list of files from NFTS partitons using yaml file as a list
+* [X] Read a EWF file
+* [X] Extract MBR from NTFS partitions
+* [X] Resolve paths of files from NTFS partitions
+* [X] Extract files from NTFS partitions
+* [ ] Extract list of files from NFTS partitons using yaml file as a list
 
 ## Credits
 
