@@ -1,10 +1,6 @@
 """Main module."""
 
 from struct import unpack
-
-# import pyewf as test
-import yaml
-
 from .fs import GPT, MBR, NTFS
 
 MBR_MAGIC = 0xD08EC033
@@ -17,7 +13,6 @@ SECTOR_SIZE = 512
 UINT32 = 4
 UINT64 = 8
 
-
 class EWFImage(object):
     """Object that reads the content of the EWF file and parses the content"""
 
@@ -29,7 +24,7 @@ class EWFImage(object):
         """
         self.filename = filename
         self.handle = None
-        self.verbosity = True
+        self.verbose = True
         self.ntfs_partitions = []
         self.mft_dump_location = None
         self.out_file_location = None
@@ -139,13 +134,12 @@ class EWFImage(object):
         before this function)
         """
         for partition in self.gpt_partitions:
-            magic = self._read_int_at_sector_offset(partition.first_lba, 0)
+            magic = self._read_int_at_sector_offset(partition["first_lba"], 0)
             if magic == NTFS_MAGIC:
                 self.ntfs_partitions.append(NTFS(self, partition))
 
     def read_ewf(self):
         """Read the EWF file, and parse the partition tables"""
-        # self.handle.display_properties()
 
         if not self._is_mbr_partition():
             print("[!] No MBR partition found, exiting...")
@@ -154,29 +148,20 @@ class EWFImage(object):
         print("[+] MBR partition found.")
 
         self._get_partitions()
-
         self._find_ntfs_partitions()
 
-    def analyze_ntfs(self, out_dir: str, dump_dir: str, resolve_mft_file: str):
+    def analyze_ntfs(self, resolve_mft_file: str, clear_cache):
         """Analyze the NTFS partitions to extract the wanted files
 
         Args:
-            out_dir: Directory where non-resolved MFT will be stored
-            dump_dir: Directory where non-resolved MFT is stored
             resolve_mft_file: Output file of resolved MFT in JSON format
         """
-        out_file = ""
-        dump_file = ""
+        for (part_idx, partition) in enumerate(self.ntfs_partitions):
+            partition.analyze_ntfs_header(part_idx, resolve_mft_file, clear_cache)
 
-        if out_dir:
-            out_file = f"{out_dir}/mft_dump.json"
-
-        if dump_dir:
-            dump_file = f"{dump_dir}/mft_dump.json"
-
+    def dump_file(self, filenames: list, dump_dir: str):
         for partition in self.ntfs_partitions:
-            partition.analyze_ntfs_header(out_file, dump_file, resolve_mft_file)
-            partition.dump_file(["C:\\Windows\\System32\\config\\SYSTEM"])
+            partition.dump_file(filenames, dump_dir)
 
     def __exit__(self, exception_type, exception_value, exception_traceback):
         """Close and clean everything. Called when we exit a `with` block."""

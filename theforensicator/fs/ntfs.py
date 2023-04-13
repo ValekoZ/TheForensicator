@@ -3,17 +3,15 @@
 import datetime
 import json
 from struct import unpack, unpack_from
-
-import pyreadpartitions as pypart
+from os.path import normpath, isfile
+from os import unlink
 
 import theforensicator
 
 SECTOR_SIZE = 512
 
-
 def SECTOR_NB(x):
     return x // SECTOR_SIZE
-
 
 BIOS_PARAMETER_BLOCK_T = "HBHBHHBHHHII"
 NTFS_BOOT_SECTOR_T = "<3sQ" + BIOS_PARAMETER_BLOCK_T + "IQQQB3sB3sQI426sH"
@@ -115,10 +113,10 @@ class NTFS(object):
         self.ewf_image = ewf_image
 
         self.handle = self.ewf_image.handle
-        self.verbosity = self.ewf_image.verbosity
+        self.verbose = self.ewf_image.verbose
         self.partition = partition
-        self._start = self.partition.first_lba
-        self._end = self.partition.last_lba
+        self._start = self.partition["first_lba"]
+        self._end = self.partition["last_lba"]
 
         self.is_mft_dump = None
         self.dump_mft = None
@@ -132,7 +130,7 @@ class NTFS(object):
             * self.ntfs_header["sectors_per_cluster"]
         )
 
-        if self.verbosity:
+        if self.verbose:
             self._pretty_print()
 
         self.mft = {}
@@ -252,7 +250,7 @@ class NTFS(object):
             self.dump_mft = json.loads(dmp_file.read())
             dmp_file.close()
 
-    def analyze_ntfs_header(self, out_file: str, dump_file: str, resolve_mft_file: str):
+    def analyze_ntfs_header(self, partition_idx: str, resolve_mft_file: str, clear_cache):
         """Analyze the NTFS header
 
         Args:
@@ -260,27 +258,29 @@ class NTFS(object):
             dump_file: Where the output has been stored in a previous run
             resolve_mft_file: Where the resolved MFT in JSON format will be stored
         """
+        mft_dump_filepath = f"MFT{partition_idx}.dump"
+
+        if clear_cache:
+            if isfile(mft_dump_filepath):
+                unlink(mft_dump_filepath)
+                print("[+] Cache cleared.")
+
         self.mft_start = self.ntfs_header["mft_lcn"]
 
         print("[+] Loading and analyzing MFT ...")
 
-        if out_file:
+        if not isfile(mft_dump_filepath):
             self.is_mft_dump = False
-            self.analyze_mft(out_file)
-
-        if dump_file:
+            self.analyze_mft(mft_dump_filepath)
+        else:
+            print("[+] Found %s, loading cache file." % (mft_dump_filepath))
             self.is_mft_dump = True
-            self.load_mft_dump(dump_file)
-
-        if not out_file and not dump_file:
-            print("[?] You didn't provide output arguments")
-            exit()
+            self.load_mft_dump(mft_dump_filepath)
+            print("[+] Cache file loaded.")
 
         print("[+] MFT loaded ...")
 
         self.resolve_mft(resolve_mft_file)
-
-        # return self.resolved_mft
 
     def _get_dump_mft_entry(self, idx: int):
         """Get a dump of the given mft entry
@@ -386,10 +386,11 @@ class NTFS(object):
 
         print("[+] MFT paths resolved ...")
 
-        if json_outfile:
+        if json_outfile and type(json_outfile) is str:
             with open(json_outfile, "w") as dmp:
                 dmp.write(json.dumps(self.resolved_mft))
                 dmp.close()
+            print("[+] %s successfully written." % (json_outfile))
 
     def analyze_mft(self, out_file: str):
         """Analyze the MFT
@@ -440,7 +441,19 @@ class NTFS(object):
 
         return buf[: lcn_dict["init_size"]]
 
-    def dump_file(self, filenames: str) -> bytes:
+    def write_to_file(self, dump_dir: str, filename: str, data: bytes):
+        if dump_dir and type(dump_dir) is str:
+            out_filename = normpath(dump_dir + "/dump_" + filename.replace('\\', '_').replace(':', ''))
+        else:
+            out_filename = "./dump_" + filename.replace('\\', '_').replace(':', '')
+
+        with open(out_filename, "wb") as f:
+            f.write(data)
+            f.close()
+
+        print("[?] %s successfully dumped to %s." % (filename, out_filename))
+
+    def dump_file(self, filenames: list, dump_dir: str) -> bytes:
         """Dump a file using its filename
 
         Args:
@@ -460,8 +473,14 @@ class NTFS(object):
             for file in info:
                 if file["file_name"] in filenames:
                     data = self.resolved_mft[key]["data"]
+                    print(file["file_name"], data)
                     if data:
-                        return self._dump_data(data)
+                        self.write_to_file(
+                            dump_dir,
+                            file["file_name"],
+                            self._dump_data(data)
+                        )
+                    print("yoyo")
 
     def _analyze_registry(self):
         print("[?] Analyzing registries")
@@ -479,7 +498,7 @@ class MFT(object):
         Args:
             header: Header of the MFT
             ntfs: NTFS
-            verbose: verbosity
+            verbose: verbose
         """
         self._mft_fields = [
             "magic",

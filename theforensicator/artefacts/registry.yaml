@@ -1,7 +1,9 @@
+dirname: REGISTRY
+files:
 - C:\Windows\System32\config\SYSTEM
-- C:\Windows\System32\config\SYSTEM.LOG*
+- C:\Windows\System32\config\SYSTEM.LOG
 - C:\Windows\System32\config\SAM
-- C:\Windows\System32\config\SAM.LOG*
+- C:\Windows\System32\config\SAM.LOG
 - C:\Windows\System32\config\SOFTWARE
-- C:\Windows\System32\config\SOFTWARE.LOG*
+- C:\Windows\System32\config\SOFTWARE.LOG
 - C:\Windows\System32\config\systemprofile\NTUSER.DAT
