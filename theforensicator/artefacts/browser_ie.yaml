@@ -1,0 +1,8 @@
+dirname: BROWSER/IE
+files:
+- C:\\Documents and Settings\\.+\\Local Settings\\History\\History\.IE5\\index\.dat$
+- C:\\Documents and Settings\\.+\\Local Settings\\History\\History\.IE5\\.+\\index\.dat$
+- C:\\Documents and Settings\\.+\\Cookies\\index\.dat$
+- C:\\Users\\.+\\AppData\\Local\\Microsoft\\Windows\\History\\.+
+- C:\\Users\\.+\\AppData\\Local\\Microsoft\\Windows\\Cookies\\.+
+- C:\\Users\\.+\\AppData\\Local\\Microsoft\\Windows\\IEDownloadHistory\\.+

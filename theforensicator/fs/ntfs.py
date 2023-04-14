@@ -2,6 +2,7 @@
 
 import datetime
 import json
+import re
 from struct import unpack, unpack_from
 from os.path import normpath, isfile
 from os import unlink
@@ -130,14 +131,16 @@ class NTFS(object):
             * self.ntfs_header["sectors_per_cluster"]
         )
 
+        print("[+] NTFS partition at sector %#x" % (self._start))
+
         if self.verbose:
-            self._pretty_print()
+            pass
+            #self._pretty_print()
 
         self.mft = {}
 
     def _pretty_print(self):
         """Prints additionnal informations about the partition"""
-        print("[+] NTFS partition at sector %#x" % (self._start))
 
         for header_name in self.ntfs_header.keys():
             if type(self.ntfs_header[header_name]) is bytes or str:
@@ -435,13 +438,19 @@ class NTFS(object):
 
         buf = b""
 
+        if lcn_dict["size"] == 0 and len(raw_data) == 0:
+            return b""
+
+        if type(raw_data) is str:
+            return bytes.fromhex(raw_data)
+
         for lcn in raw_data:
             for idx in range(lcn["lcn_length"]):
                 buf += self._read_cluster(lcn["lcn_offset"] + idx)
 
         return buf[: lcn_dict["init_size"]]
 
-    def write_to_file(self, dump_dir: str, filename: str, data: bytes):
+    def write_to_file(self, dump_dir, filename: str, data: bytes):
         if dump_dir and type(dump_dir) is str:
             out_filename = normpath(dump_dir + "/dump_" + filename.replace('\\', '_').replace(':', ''))
         else:
@@ -462,7 +471,11 @@ class NTFS(object):
         Returns:
             The file content
         """
+
+        files_list_match = '(?:%s)' % '|'.join(filenames)
+
         for key in self.resolved_mft:
+            
             obj_type = self.resolved_mft[key]["type"]
 
             if obj_type not in ["FILE", "ORPHAN_FILE"]:
@@ -471,16 +484,14 @@ class NTFS(object):
             info = self.resolved_mft[key]["info"]
 
             for file in info:
-                if file["file_name"] in filenames:
+                if re.match(files_list_match, file["file_name"], flags=re.IGNORECASE):
                     data = self.resolved_mft[key]["data"]
-                    print(file["file_name"], data)
                     if data:
                         self.write_to_file(
                             dump_dir,
                             file["file_name"],
                             self._dump_data(data)
                         )
-                    print("yoyo")
 
     def _analyze_registry(self):
         print("[?] Analyzing registries")

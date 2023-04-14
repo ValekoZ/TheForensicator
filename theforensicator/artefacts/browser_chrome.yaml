@@ -1,0 +1,4 @@
+dirname: BROWSER/CHROME
+files:
+- C:\\Users\\.+\\AppData\\Local\\Google\\Chrome\\User Data\\.*\\Bookmarks*
+- C:\\Users\\.+\\AppData\\Local\\Google\\Chrome\\User Data\\.*\\(Bookmarks|Cookies|Current Session|Current Tabs|DownloadMetadata|Extension Cookies|Favicons|History|Last Session|Last Tabs|Login Data|Media History|Network Action Predictor|Network Persistent State|Preferences|QuotaManager|Reporting and NEL|Shortcuts|Top Sites|Trust Tokens|Visited Links|Web Data)*

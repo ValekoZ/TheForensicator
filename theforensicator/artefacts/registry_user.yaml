@@ -1,0 +1,4 @@
+dirname: REGISTRY_USER
+files:
+- C:\\Users\\.+\\AppData\\Local\\Microsoft\\Windows\\UsrClass\.dat*
+- C:\\Users\\.+\\NTUSER.DAT*

@@ -1,0 +1,5 @@
+dirname: EVENTS
+files:
+- C:\\Windows\\System32\\config\\.+\.evt$
+- C:\\Windows\\System32\\winevt\\Logs\\.+\.evtx$
+- C:\\Windows.old\\System32\\winevt\\Logs\\.+\.evtx$

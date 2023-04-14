@@ -51,7 +51,8 @@ def cmd(ewf_file: str, dump_dir: str = None, resolve_mft_file: str = None, dmp_f
                     if not exists(out_dir):
                         Path(out_dir).mkdir(parents=True, exist_ok=True)
 
-                    ewf.dump_file(data["files"], normpath(f"{dump_dir}/{data['dirname']}"))
+                    ewf.dump_file(data["files"], normpath(out_dir))
+                    _artefact.close()
 
 def main():
     fire.Fire(cmd)

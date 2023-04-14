@@ -1,0 +1,8 @@
+dirname: BROWSER/FIREFOX
+files:
+- C:\\Users\\.+\\AppData\\Roaming\\Mozilla\\Firefox\\Profiles\\.+\\addons\.sqlite*
+- C:\\Users\\.+\\AppData\\Roaming\\Mozilla\\Firefox\\Profiles\\.+\\weave\\bookmarks\.sqlite*
+- C:\\Users\\.+\\AppData\\Roaming\\Mozilla\\Firefox\\Profiles\\.+\\(cookies|firefox_cookies|downloads|favicons|formhistory|permissions|places|protections|search|signons|webappstore|storage-sync)\.sqlite*
+- C:\\Users\\.+\\AppData\\Roaming\\Mozilla\\Firefox\\Profiles\\.+\\(extensions|logins)\.json*
+- C:\\Users\\.+\\AppData\\Roaming\\Mozilla\\Firefox\\Profiles\\.+\\key*.+\.db
+- C:\\Users\\.+\\AppData\\Roaming\\Mozilla\\Firefox\\Profiles\\.+\\prefs\.js$

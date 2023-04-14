@@ -1,0 +1,4 @@
+dirname: PREFETCH
+files:
+- C:\\Windows\\Prefetch\\.+\.pf$
+- C:\\Windows.old\\Prefetch\\.+\.pf$

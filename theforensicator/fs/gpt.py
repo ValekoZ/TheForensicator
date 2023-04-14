@@ -117,3 +117,5 @@ class GPT(object):
                 partition["first_lba"],
                 (partition["last_lba"] - partition["first_lba"] + 1)
             ))
+        
+        print("=" * 89)
