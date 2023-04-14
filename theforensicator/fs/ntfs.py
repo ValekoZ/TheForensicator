@@ -578,6 +578,10 @@ class MFT(object):
             windows_time: Time to convert
         """
         seconds = windows_time / 10000000
+        
+        if seconds < 0:
+            seconds = 0
+        
         epoch = seconds - 11644473600
         dt = datetime.datetime(2000, 1, 1, 0, 0, 0).fromtimestamp(epoch)
         return {"timestamp": epoch, "date": f"{dt.ctime()}"}
