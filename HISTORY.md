@@ -32,3 +32,8 @@ This release is associated to tag v0.1.3 instead of v0.1.2
 
 * Fix mismatch between releases and git tags
 * Update documentation
+
+## 0.1.5 (2023-04-15)
+
+* Fix datetime failure
+* Add NTFS methods documentation
