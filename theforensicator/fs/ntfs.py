@@ -571,18 +571,21 @@ class MFT(object):
         self.is_valid_entry = True
         self.record = {"is_directory": False, "files": []}
 
-    def _get_datetime(self, windows_time: int):
+    def _get_datetime(self, windows_time: int) -> dict:
         """Convert windows time to datetime
 
         Args:
             windows_time: Time to convert
+
+        Returns:
+            Time in a dict
         """
         seconds = windows_time / 10000000
-        
-        if seconds < 0:
-            seconds = 0
-        
         epoch = seconds - 11644473600
+        
+        if epoch < 0:
+            epoch = 0
+        
         dt = datetime.datetime(2000, 1, 1, 0, 0, 0).fromtimestamp(epoch)
         return {"timestamp": epoch, "date": f"{dt.ctime()}"}
 
@@ -590,6 +593,14 @@ class MFT(object):
     """
 
     def _standard_info_decode(self, attribute: bytes):
+        """Decode STANDARD_INFORMATION attribute
+
+        Args:
+            attribute: Raw attribute to decode
+        
+        Returns:
+            The parsed attribute
+        """
         # not complete but at this time we don't need more
         si_info = {}
 
@@ -625,6 +636,14 @@ class MFT(object):
     """
 
     def _attribute_list_decode(self, attribute: bytes) -> dict:
+        """Decode ATTR_LIST_ENTRY attribute
+
+        Args:
+            attribute: Raw attribute to decode
+        
+        Returns:
+            The parsed attribute
+        """
         attr_list = {}
 
         attr_list["type"] = unpack_from("<I", attribute, offset=0)[0]
@@ -645,6 +664,14 @@ class MFT(object):
     """
 
     def _file_name_decode(self, attribute: bytes) -> dict:
+        """Decode FILE_NAME_ATTR attribute
+
+        Args:
+            attribute: Raw attribute to decode
+        
+        Returns:
+            The parsed attribute
+        """
         _file_name = {}
 
         # for now there's no check on sequence number, maybe after
@@ -724,6 +751,14 @@ class MFT(object):
     """
 
     def _object_id_decode(self, attribute: bytes) -> dict:
+        """Decode OBJECT_ID_ATTR attribute
+
+        Args:
+            attribute: Raw attribute to decode
+        
+        Returns:
+            The parsed attribute
+        """
         _object_id = {}
 
         _object_id["data1"] = unpack_from("<I", attribute, offset=0x0)[0]
@@ -752,7 +787,15 @@ class MFT(object):
     """Attribute type : (0x80) DATA
     """
 
-    def _data_runs_decode(self, dataruns: bytes):
+    def _data_runs_decode(self, dataruns: bytes) -> list:
+        """Decode DATA attribute
+
+        Args:
+            dataruns: dataruns list
+        
+        Returns:
+            Data of the MFT entry
+        """
         current_datarun = dataruns
         run_header = unpack_from("<B", current_datarun, offset=0)[0]
 
@@ -828,6 +871,12 @@ class MFT(object):
         return data
 
     def _analyze_attribute(self, attr_parsed: dict, raw_attr: bytes):
+        """Analyze and decode an attribute
+
+        Args:
+            attr_parsed: parsed attribute dict
+            raw_attr: raw bytes attribute
+        """
         if attr_parsed["non_resident"]:
             attribute = b""
         else:
@@ -910,6 +959,8 @@ class MFT(object):
     """
 
     def parse_attr_header(self):
+        """Parse an attribute
+        """
         attrs_offset = self.mft_parsed["attrs_offset"]
 
         # offset must be aligned on 8 bytes

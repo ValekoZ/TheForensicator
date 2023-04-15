@@ -1,7 +1,7 @@
 [tool]
 [tool.poetry]
 name = "theforensicator"
-version = "0.1.4"
+version = "0.1.5"
 homepage = "https://github.com/ValekoZ/theforensicator"
 description = "School project for forensic investigations."
 authors = [
