@@ -9,7 +9,7 @@ from pathlib import Path
 import yaml
 import glob
 
-def cmd(ewf_file: str, dump_dir: str = None, resolve_mft_file: str = None, dmp_file: str = None, clear_cache: str = None, extract_artefacts: str = None):
+def cmd(ewf_file: str, dump_dir: str = None, resolve_mft_file: str = None, dmp_file: str = None, clear_cache: str = None, extract_artefacts: bool = False):
     """Parses a EWF file and dump interesting files found in the windows file
     system
 

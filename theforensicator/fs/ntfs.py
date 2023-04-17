@@ -261,6 +261,7 @@ class NTFS(object):
             dump_file: Where the output has been stored in a previous run
             resolve_mft_file: Where the resolved MFT in JSON format will be stored
         """
+        self.partition_idx = partition_idx
         mft_dump_filepath = f"MFT{partition_idx}.dump"
 
         if clear_cache:
@@ -291,11 +292,16 @@ class NTFS(object):
         Args:
             Index of the MFT entry to dump
         """
-        return (
-            self.dump_mft["mft"][str(idx)]
-            if self.is_mft_dump
-            else self.dump_mft["mft"][idx]
-        )
+        if self.is_mft_dump:
+            try:
+                return self.dump_mft["mft"][str(idx)]
+            except:
+                return None
+        
+        try:
+            return self.dump_mft["mft"][idx]
+        except:
+            return None
 
     def _resolve_path(self, mft_entry) -> list:
         """Resolve the path of the given mft entry
@@ -317,6 +323,9 @@ class NTFS(object):
             while parent_dir != FILE_root:
                 next_entry = self._get_dump_mft_entry(parent_dir)
 
+                if next_entry is None:
+                    break
+
                 if next_entry["is_directory"]:
                     parent_dir = next_entry["parent_directory"]
                     path = f'{next_entry["directory_name"]}\\{path}'
@@ -332,14 +341,23 @@ class NTFS(object):
                 parent_dir = file["parent_directory"]
                 path += file["file_name"]
 
+                is_valid = True
+
                 while parent_dir != FILE_root:
                     next_entry = self._get_dump_mft_entry(parent_dir)
+
+                    if next_entry is None:
+                        is_valid = False
+                        break
 
                     if next_entry["is_directory"]:
                         parent_dir = next_entry["parent_directory"]
                         path = f'{next_entry["directory_name"]}\\{path}'
                     else:
                         return [{"type": "ORPHAN_FILE", "file_name": path}]
+
+                if not is_valid:
+                    continue
 
                 path = "C:\\" + path
 
@@ -390,7 +408,7 @@ class NTFS(object):
         print("[+] MFT paths resolved ...")
 
         if json_outfile and type(json_outfile) is str:
-            with open(json_outfile, "w") as dmp:
+            with open(f"{json_outfile}.{self.partition_idx}", "w") as dmp:
                 dmp.write(json.dumps(self.resolved_mft))
                 dmp.close()
             print("[+] %s successfully written." % (json_outfile))
@@ -839,12 +857,14 @@ class MFT(object):
             lcn_length = unpack(
                 "<Q", current_datarun[1 : 1 + size_lcn_nb].ljust(8, b"\0")
             )[0]
-            lcn_offset = unpack(
-                "<Q",
-                current_datarun[
-                    1 + size_lcn_nb : 1 + size_lcn_nb + size_lcn_offset
-                ].ljust(8, b"\0"),
-            )[0]
+            
+            if lcn_length != 0x0:
+                lcn_offset = unpack(
+                    "<Q",
+                    current_datarun[
+                        1 + size_lcn_nb : 1 + size_lcn_nb + size_lcn_offset
+                    ].ljust(8, b"\0"),
+                )[0]
 
             # if it's a sparse file we continue to the next
             # run because we don't care of this data.
