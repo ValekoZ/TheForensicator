@@ -37,3 +37,7 @@ This release is associated to tag v0.1.3 instead of v0.1.2
 
 * Fix datetime failure
 * Add NTFS methods documentation
+
+## 0.1.6 (2023-04-17)
+
+* Fix bug in NTFS parsing
